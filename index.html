@@ -1,110 +1,180 @@
 <!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pre-Order</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;900&display=swap" rel="stylesheet">
 
+<title>Pre-Order</title>
+
 <style>
-body{font-family:'Prompt',sans-serif;margin:0;background:#f4f9fd}
-.header{background:#155fa0;color:#fff;text-align:center;padding:20px;font-size:22px;font-weight:700}
-.container{max-width:800px;margin:auto;padding:15px}
-.card{background:#fff;border-radius:12px;padding:15px;margin-bottom:15px;box-shadow:0 4px 15px rgba(0,0,0,.08)}
-.product{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.qty button{width:30px;height:30px}
-input{padding:8px;width:100%;margin-bottom:10px}
-button.submit{background:#155fa0;color:#fff;padding:12px;border:none;width:100%;font-size:16px}
-.total{font-size:20px;font-weight:700;text-align:right}
+/* ===== CSS เดิมทั้งหมดของคุณ ===== */
+:root{
+  --sky:#e8f4fd; --sky2:#d0e9f8;
+  --blue:#1a7fd4; --blue2:#155fa0; --blue3:#0d3f6e;
+  --white:#ffffff; --soft:#f0f7fd; --border:#b8d9f0; --muted:#6b92b0;
+  --red:#dc2626;
+  --shadow: 0 4px 24px rgba(26,127,212,.13);
+  --fs-base:18px; --fs-sm:15px; --fs-xs:13px; --fs-xl:24px;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body{
+  margin:0; font-family:'Prompt',sans-serif;
+  background:linear-gradient(160deg,#daeefb 0%,#f0f7fd 50%,#e3f1fa 100%);
+  color:var(--blue3); min-height:100vh;
+}
+.header{
+  background:linear-gradient(135deg,var(--blue3) 0%,var(--blue2) 60%,var(--blue) 100%);
+  color:var(--white); padding:15px;
+  text-align:center;
+}
+.header-title{ font-size:var(--fs-xl); font-weight:900; }
+.card{
+  background:var(--white); border-radius:22px;
+  box-shadow:var(--shadow); margin:10px 14px;
+  overflow:hidden; border:1px solid var(--border);
+}
+.card-header{
+  background:linear-gradient(90deg,var(--sky) 0%,var(--sky2) 100%);
+  padding:13px 18px; border-bottom:1px solid var(--border);
+  font-weight:700;
+}
+.product-row{
+  padding:13px 16px; border-bottom:1px solid var(--sky2);
+}
+.qty-btn{
+  width:33px;height:33px;border:2px solid var(--border);
+  background:var(--sky);border-radius:9px;font-weight:700;
+}
+.total-bar{
+  background:linear-gradient(135deg,var(--blue3),var(--blue2));
+  padding:16px 20px; display:flex;
+  justify-content:space-between; align-items:center;
+  margin:0 14px; border-radius:18px;
+}
+.total-value{ font-size:24px;font-weight:900;color:#fff; }
+.inp{
+  width:100%; padding:10px;
+  border-radius:11px;border:2px solid var(--border);
+  margin-bottom:10px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff;padding:12px;border:none;
+  border-radius:12px;width:100%;font-weight:700;
+}
+.toast{
+  margin:10px 14px;padding:12px;border-radius:12px;
+  display:none;font-weight:600;
+}
+.toast.ok{background:#f0fdf4;color:#14532d}
+.toast.err{background:#fef2f2;color:#7f1d1d}
 </style>
 </head>
 <body>
 
-<div class="header">สั่งออเดอร์ล่วงหน้า</div>
+<div class="header">
+  <div class="header-title">สั่งออเดอร์ล่วงหน้า</div>
+</div>
 
-<div class="container">
-  <div class="card" id="productList">กำลังโหลดสินค้า...</div>
+<div class="card">
+  <div class="card-header">🧋 เลือกสินค้า</div>
+  <div id="productBody" style="padding:10px">กำลังโหลดสินค้า...</div>
+</div>
 
-  <div class="card">
-    <input id="customerName" placeholder="ชื่อลูกค้า">
-    <input id="phone" placeholder="เบอร์โทร">
-    <input id="pickupTime" type="datetime-local">
-    <div class="total" id="grandTotal">฿0.00</div>
-    <button class="submit" onclick="submitOrder()">บันทึกออเดอร์</button>
+<div class="total-bar">
+  <div style="color:#fff">ยอดรวม</div>
+  <div class="total-value" id="grandTotal">฿0.00</div>
+</div>
+
+<div class="card">
+  <div class="card-header">📋 ข้อมูลลูกค้า</div>
+  <div style="padding:15px">
+    <input class="inp" id="customerName" placeholder="ชื่อลูกค้า">
+    <input class="inp" id="phone" placeholder="เบอร์โทร">
+    <input class="inp" id="pickupTime" type="datetime-local">
+    <button class="btn-primary" onclick="submitOrder()">บันทึกออเดอร์</button>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-/* 🔴 ใส่ Web App URL ของคุณตรงนี้ */
+/* 🔴 ใส่ Web App URL ของคุณ */
 const API_URL = "https://script.google.com/macros/s/AKfycbx5dYwQRcAEYh75qrQFLoxUWkVazi7reIviNGKbF5aLnUO-DhNPSsc5HJJZ1UkVLII88w/exec";
 
 let products=[];
 let qtyMap={};
+let noteMap={};
 
 const money=n=>"฿"+Number(n||0).toLocaleString("th-TH",{minimumFractionDigits:2});
 
-/* โหลดสินค้า */
+function showToast(msg,ok=true){
+  const el=document.getElementById("toast");
+  el.className="toast "+(ok?"ok":"err");
+  el.innerHTML=msg;
+  el.style.display="block";
+}
+
+function keyOf(p){
+  return (p.sku&&p.sku.trim())?"SKU:"+p.sku:"NAME:"+p.name;
+}
+
 async function loadProducts(){
   const res = await fetch(API_URL+"?action=getProducts");
   const data = await res.json();
-
-  if(!data.ok){
-    document.getElementById("productList").innerHTML="โหลดสินค้าไม่สำเร็จ";
-    return;
-  }
-
+  if(!data.ok){ showToast("โหลดสินค้าไม่สำเร็จ",false); return; }
   products=data.products||[];
-  renderProducts();
+  render();
 }
 
-function renderProducts(){
-  const el=document.getElementById("productList");
-  if(!products.length){
-    el.innerHTML="ไม่มีสินค้า";
-    return;
-  }
-
-  el.innerHTML=products.map((p,i)=>`
-    <div class="product">
-      <div>
-        <div><b>${p.name}</b></div>
-        <div>${money(p.price)}</div>
-      </div>
-      <div class="qty">
-        <button onclick="changeQty(${i},-1)">-</button>
-        <span>${qtyMap[i]||0}</span>
-        <button onclick="changeQty(${i},1)">+</button>
-      </div>
-    </div>
-  `).join("");
-
+function render(){
+  const body=document.getElementById("productBody");
+  body.innerHTML=products.map((p,i)=>{
+    const k=keyOf(p);
+    const qty=qtyMap[k]||0;
+    return `
+    <div class="product-row">
+      <div><b>${p.name}</b> (${money(p.price)})</div>
+      <button class="qty-btn" onclick="chg('${k}',-1)">-</button>
+      ${qty}
+      <button class="qty-btn" onclick="chg('${k}',1)">+</button>
+      <input placeholder="หมายเหตุ" 
+             oninput="noteMap['${k}']=this.value"
+             style="width:100%;margin-top:5px">
+    </div>`;
+  }).join("");
   calcTotal();
 }
 
-function changeQty(i,d){
-  qtyMap[i]=Math.max(0,(qtyMap[i]||0)+d);
-  renderProducts();
+function chg(k,d){
+  qtyMap[k]=Math.max(0,(qtyMap[k]||0)+d);
+  render();
 }
 
 function calcTotal(){
   let total=0;
-  products.forEach((p,i)=>{
-    total+=p.price*(qtyMap[i]||0);
+  products.forEach(p=>{
+    const k=keyOf(p);
+    total+=p.price*(qtyMap[k]||0);
   });
   document.getElementById("grandTotal").innerText=money(total);
   return total;
 }
 
 async function submitOrder(){
-  const items=products.map((p,i)=>({
-    sku:p.sku,
-    name:p.name,
-    price:p.price,
-    qty:qtyMap[i]||0,
-    note:""
-  })).filter(i=>i.qty>0);
+  const items=products.map(p=>{
+    const k=keyOf(p);
+    return {
+      sku:p.sku,
+      name:p.name,
+      price:p.price,
+      qty:qtyMap[k]||0,
+      note:noteMap[k]||""
+    };
+  }).filter(i=>i.qty>0);
 
-  if(!items.length){alert("เลือกสินค้าอย่างน้อย 1 รายการ");return;}
+  if(!items.length){ showToast("กรุณาเลือกสินค้า",false); return; }
 
   const payload={
     action:"submitOrder",
@@ -124,14 +194,15 @@ async function submitOrder(){
   const data = await res.json();
 
   if(data.ok){
-    alert("สำเร็จ เลขออเดอร์: "+data.orderId);
+    showToast("สำเร็จ เลขออเดอร์: "+data.orderId,true);
     location.reload();
   }else{
-    alert("ผิดพลาด: "+data.error);
+    showToast("ผิดพลาด: "+data.error,false);
   }
 }
 
 loadProducts();
 </script>
+
 </body>
 </html>
