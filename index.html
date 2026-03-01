@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+body{font-family:'Prompt',sans-serif;margin:0;background:#f4f9fd}
+.header{background:#155fa0;color:#fff;text-align:center;padding:20px;font-size:22px;font-weight:700}
+.container{max-width:800px;margin:auto;padding:15px}
+.card{background:#fff;border-radius:12px;padding:15px;margin-bottom:15px;box-shadow:0 4px 15px rgba(0,0,0,.08)}
+.product{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.qty button{width:30px;height:30px}
+input{padding:8px;width:100%;margin-bottom:10px}
+button.submit{background:#155fa0;color:#fff;padding:12px;border:none;width:100%;font-size:16px}
+.total{font-size:20px;font-weight:700;text-align:right}
+</style>
+</head>
+<body>
+
+<div class="header">สั่งออเดอร์ล่วงหน้า</div>
+
+<div class="container">
+  <div class="card" id="productList">กำลังโหลดสินค้า...</div>
+
+  <div class="card">
+    <input id="customerName" placeholder="ชื่อลูกค้า">
+    <input id="phone" placeholder="เบอร์โทร">
+    <input id="pickupTime" type="datetime-local">
+    <div class="total" id="grandTotal">฿0.00</div>
+    <button class="submit" onclick="submitOrder()">บันทึกออเดอร์</button>
+  </div>
+</div>
+
+<script>
+/* 🔴 ใส่ Web App URL ของคุณตรงนี้ */
+const API_URL = "PASTE_YOUR_WEBAPP_URL_HERE";
+
+let products=[];
+let qtyMap={};
+
+const money=n=>"฿"+Number(n||0).toLocaleString("th-TH",{minimumFractionDigits:2});
+
+/* โหลดสินค้า */
+async function loadProducts(){
+  const res = await fetch(API_URL+"?action=getProducts");
+  const data = await res.json();
+
+  if(!data.ok){
+    document.getElementById("productList").innerHTML="โหลดสินค้าไม่สำเร็จ";
+    return;
+  }
+
+  products=data.products||[];
+  renderProducts();
+}
+
+function renderProducts(){
+  const el=document.getElementById("productList");
+  if(!products.length){
+    el.innerHTML="ไม่มีสินค้า";
+    return;
+  }
+
+  el.innerHTML=products.map((p,i)=>`
+    <div class="product">
+      <div>
+        <div><b>${p.name}</b></div>
+        <div>${money(p.price)}</div>
+      </div>
+      <div class="qty">
+        <button onclick="changeQty(${i},-1)">-</button>
+        <span>${qtyMap[i]||0}</span>
+        <button onclick="changeQty(${i},1)">+</button>
+      </div>
+    </div>
+  `).join("");
+
+  calcTotal();
+}
+
+function changeQty(i,d){
+  qtyMap[i]=Math.max(0,(qtyMap[i]||0)+d);
+  renderProducts();
+}
+
+function calcTotal(){
+  let total=0;
+  products.forEach((p,i)=>{
+    total+=p.price*(qtyMap[i]||0);
+  });
+  document.getElementById("grandTotal").innerText=money(total);
+  return total;
+}
+
+async function submitOrder(){
+  const items=products.map((p,i)=>({
+    sku:p.sku,
+    name:p.name,
+    price:p.price,
+    qty:qtyMap[i]||0,
+    note:""
+  })).filter(i=>i.qty>0);
+
+  if(!items.length){alert("เลือกสินค้าอย่างน้อย 1 รายการ");return;}
+
+  const payload={
+    action:"submitOrder",
+    payload:{
+      customerName:document.getElementById("customerName").value,
+      phone:document.getElementById("phone").value,
+      pickupTime:document.getElementById("pickupTime").value,
+      items:items
+    }
+  };
+
+  const res = await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if(data.ok){
+    alert("สำเร็จ เลขออเดอร์: "+data.orderId);
+    location.reload();
+  }else{
+    alert("ผิดพลาด: "+data.error);
+  }
+}
+
+loadProducts();
+</script>
+</body>
+</html>
